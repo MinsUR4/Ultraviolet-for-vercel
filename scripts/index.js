@@ -1,6 +1,6 @@
 
 "use strict";
-/**
+/**script indect.js
  * @type {HTMLFormElement}
  */
 const form = document.getElementById("searchbox");

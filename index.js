@@ -1,33 +1,24 @@
-
-
 const http = require("node:http");
 const { createBareServer } = require("@tomphttp/bare-server-node");
-const fs = require("fs");
+const express = require("express");
 const path = require("path");
 
-// Create an HTTP server
-const httpServer = http.createServer();
 const bareServer = createBareServer("/bare/");
+const app = express();
 
-httpServer.on("request", (req, res) => {
+// Serve all static files from the project root
+app.use(express.static(path.join(__dirname), { index: "index.html" }));
+
+// Fallback for any unmatched routes
+app.use((req, res) => {
+  res.status(404).send("Not found.");
+});
+
+const httpServer = http.createServer((req, res) => {
   if (bareServer.shouldRoute(req)) {
     bareServer.routeRequest(req, res);
-  } else if (req.url === "/") {
-    // Serve the index.html file when the root URL is requested
-    const indexPath = path.join(__dirname, "index.html");
-
-    fs.readFile(indexPath, "utf8", (err, data) => {
-      if (err) {
-        res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Internal Server Error");
-      } else {
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(data);
-      }
-    });
   } else {
-    res.writeHead(400, { "Content-Type": "text/plain" });
-    res.end("Not found.");
+    app(req, res);
   }
 });
 
@@ -39,10 +30,6 @@ httpServer.on("upgrade", (req, socket, head) => {
   }
 });
 
-httpServer.on("listening", () => {
-  console.log("HTTP server listening");
-});
-
-httpServer.listen({
-  port: 8000,
+httpServer.listen(8000, () => {
+  console.log("HTTP server listening on port 8000");
 });
