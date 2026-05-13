@@ -6,12 +6,7 @@ const app = express();
 const bareServer = createBareServer("/bare/");
 
 // =====================
-// Serve static frontend
-// =====================
-app.use(express.static(path.join(__dirname)));
-
-// =====================
-// Bare proxy routing
+// 1. Bare proxy FIRST
 // =====================
 app.use((req, res, next) => {
   if (bareServer.shouldRoute(req)) {
@@ -21,11 +16,22 @@ app.use((req, res, next) => {
 });
 
 // =====================
-// SPA fallback (ONLY if you want index.html routing)
+// 2. Static files SECOND
 // =====================
-app.get("*", (req, res) => {
+app.use(express.static(path.join(__dirname), {
+  extensions: ["js", "css", "html"]
+}));
+
+// =====================
+// 3. ONLY fallback for HTML pages
+//    (NOT JS FILES)
+// =====================
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/uv/") || req.path.endsWith(".js")) {
+    return next(); // IMPORTANT: do NOT hijack JS files
+  }
+
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Export for Vercel (IMPORTANT)
 module.exports = app;
