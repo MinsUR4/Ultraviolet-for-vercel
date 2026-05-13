@@ -1,35 +1,31 @@
-const http = require("node:http");
-const { createBareServer } = require("@tomphttp/bare-server-node");
 const express = require("express");
 const path = require("path");
+const { createBareServer } = require("@tomphttp/bare-server-node");
 
-const bareServer = createBareServer("/bare/");
 const app = express();
+const bareServer = createBareServer("/bare/");
 
-// Serve all static files from the project root
-app.use(express.static(path.join(__dirname), { index: "index.html" }));
+// =====================
+// Serve static frontend
+// =====================
+app.use(express.static(path.join(__dirname)));
 
-// Fallback for any unmatched routes
-app.use((req, res) => {
-  res.status(404).send("Not found.");
-});
-
-const httpServer = http.createServer((req, res) => {
+// =====================
+// Bare proxy routing
+// =====================
+app.use((req, res, next) => {
   if (bareServer.shouldRoute(req)) {
-    bareServer.routeRequest(req, res);
-  } else {
-    app(req, res);
+    return bareServer.routeRequest(req, res, next);
   }
+  next();
 });
 
-httpServer.on("upgrade", (req, socket, head) => {
-  if (bareServer.shouldRoute(req)) {
-    bareServer.routeUpgrade(req, socket, head);
-  } else {
-    socket.end();
-  }
+// =====================
+// SPA fallback (ONLY if you want index.html routing)
+// =====================
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-httpServer.listen(8000, () => {
-  console.log("HTTP server listening on port 8000");
-});
+// Export for Vercel (IMPORTANT)
+module.exports = app;
