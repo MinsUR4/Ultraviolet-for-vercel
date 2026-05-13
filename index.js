@@ -5,9 +5,7 @@ const { createBareServer } = require("@tomphttp/bare-server-node");
 const app = express();
 const bareServer = createBareServer("/bare/");
 
-// =====================
-// 1. Bare proxy FIRST
-// =====================
+// Bare proxy FIRST
 app.use((req, res, next) => {
   if (bareServer.shouldRoute(req)) {
     return bareServer.routeRequest(req, res, next);
@@ -15,22 +13,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// =====================
-// 2. Static files SECOND
-// =====================
-app.use(express.static(path.join(__dirname), {
-  extensions: ["js", "css", "html"]
-}));
-
-// =====================
-// 3. ONLY fallback for HTML pages
-//    (NOT JS FILES)
-// =====================
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/uv/") || req.path.endsWith(".js")) {
-    return next(); // IMPORTANT: do NOT hijack JS files
-  }
-
+// ONLY serve index.html fallback
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
